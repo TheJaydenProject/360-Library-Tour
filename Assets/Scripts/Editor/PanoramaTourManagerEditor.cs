@@ -7,6 +7,23 @@ public class PanoramaTourManagerEditor : Editor
 {
     private VideoPlayer _pendingPreviewVideoPlayer;
 
+    // Kicks off Prepare() for every video node as soon as TourManager is selected, so by the
+    // time you click between Preview buttons most are already loaded instead of each click
+    // hitting its own wait.
+    private void OnEnable()
+    {
+        var manager = target as PanoramaTourManager;
+        if (manager == null) return;
+
+        foreach (PanoramaNode node in manager.Nodes)
+        {
+            if (node.videoPlayer != null && !node.videoPlayer.isPrepared)
+            {
+                node.videoPlayer.Prepare();
+            }
+        }
+    }
+
     private void OnDisable()
     {
         if (_pendingPreviewVideoPlayer != null)
@@ -82,8 +99,10 @@ public class PanoramaTourManagerEditor : Editor
         }
     }
 
-    // Video preparation is async even in Edit mode, so this steps a single decoded frame into
-    // the VideoPlayer's render texture once ready, giving a non-black preview of a video room.
+    // Video preparation is async even in Edit mode, so this plays-then-pauses a single decoded
+    // frame into the VideoPlayer's render texture once ready, giving a non-black preview of a
+    // video room. Play()+Pause() is used instead of StepForward() alone, since StepForward on a
+    // player that has never actually played doesn't reliably push a frame into the render target.
     private void RequestVideoPreviewFrame(VideoPlayer videoPlayer)
     {
         if (_pendingPreviewVideoPlayer != null)
@@ -93,7 +112,8 @@ public class PanoramaTourManagerEditor : Editor
 
         if (videoPlayer.isPrepared)
         {
-            videoPlayer.StepForward();
+            videoPlayer.Play();
+            videoPlayer.Pause();
             EditorApplication.update += RepaintOnce;
         }
         else
@@ -108,13 +128,18 @@ public class PanoramaTourManagerEditor : Editor
     {
         vp.prepareCompleted -= OnVideoPrepared;
         _pendingPreviewVideoPlayer = null;
-        vp.StepForward();
+        vp.Play();
+        vp.Pause();
         EditorApplication.update += RepaintOnce;
     }
 
     private void RepaintOnce()
     {
         EditorApplication.update -= RepaintOnce;
-        SceneView.RepaintAll();
+
+        // SceneView.RepaintAll() alone doesn't refresh the Game tab in Edit mode - it needs an
+        // explicit nudge, otherwise the frame is actually ready but the Game view just won't
+        // redraw itself until you click into it manually.
+        UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
     }
 }

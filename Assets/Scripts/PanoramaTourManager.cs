@@ -24,6 +24,7 @@ public class PanoramaTourManager : MonoBehaviour
     [SerializeField] private float maxOverlayAlpha = 0.35f;
 
     private bool _isTransitioning;
+    private bool _isLoading;
     private readonly HashSet<VideoPlayer> _primedVideoPlayers = new();
 
     public IReadOnlyList<PanoramaNode> Nodes => nodes;
@@ -108,26 +109,24 @@ public class PanoramaTourManager : MonoBehaviour
             return;
         }
 
-        if (transitionOverlay != null)
-        {
-            SetOverlayAlpha(0f);
-        }
-
         if (blurController != null)
         {
             blurController.SetBlurStrength(0f);
         }
 
-        PreloadAllVideos();
-
         ActivateNode(nodes[0].nodeId, applyFacing: false);
+
+        StartCoroutine(LoadAllVideosThenReveal());
     }
 
-    // Kicks off Prepare() for every video node up front, so by the time someone actually
-    // navigates into a video room, decoding has likely already finished instead of causing
-    // a visible black flash mid-transition the first time each one is visited.
-    private void PreloadAllVideos()
+    // Keeps the tour hidden behind the transition overlay and blocks navigation until every
+    // video node has actually finished preparing and shown its first frame, so nobody ever sees
+    // a black room mid-tour - the one-time cost happens up front instead of scattered around.
+    private IEnumerator LoadAllVideosThenReveal()
     {
+        _isLoading = true;
+        SetOverlayAlpha(1f);
+
         foreach (PanoramaNode node in nodes)
         {
             if (node.videoPlayer != null && !node.videoPlayer.isPrepared)
@@ -135,12 +134,24 @@ public class PanoramaTourManager : MonoBehaviour
                 node.videoPlayer.Prepare();
             }
         }
+
+        foreach (PanoramaNode node in nodes)
+        {
+            if (node.videoPlayer == null) continue;
+
+            yield return new WaitUntil(() => node.videoPlayer.isPrepared);
+            ShowFirstVideoFrameOnly(node.videoPlayer);
+        }
+
+        _isLoading = false;
+
+        yield return AnimateTransitionPhase(0f, 0f, 1f, 0f, punchOutDuration);
     }
 
     public void NavigateToNode(string nodeId, ArrivalDirection direction = ArrivalDirection.In)
     {
-        // Ignore clicks that arrive mid-transition to avoid overlapping coroutines
-        if (_isTransitioning) return;
+        // Ignore clicks that arrive mid-transition, or before the initial load has finished
+        if (_isTransitioning || _isLoading) return;
 
         StartCoroutine(TransitionToNode(nodeId, direction));
     }
