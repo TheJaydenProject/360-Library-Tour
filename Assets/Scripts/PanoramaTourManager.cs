@@ -127,19 +127,20 @@ public class PanoramaTourManager : MonoBehaviour
         _isLoading = true;
         SetOverlayAlpha(1f);
 
-        foreach (PanoramaNode node in nodes)
-        {
-            if (node.videoPlayer != null && !node.videoPlayer.isPrepared)
-            {
-                node.videoPlayer.Prepare();
-            }
-        }
-
+        // Loaded one at a time, not concurrently: weaker/integrated-GPU laptops often only support
+        // 1-2 hardware video decode sessions at once, so preparing several videos in parallel can
+        // cause contention or a fallback to heavy software decoding. Serializing costs more total
+        // load time but never depends on how many concurrent decode sessions the hardware allows.
         foreach (PanoramaNode node in nodes)
         {
             if (node.videoPlayer == null) continue;
 
-            yield return new WaitUntil(() => node.videoPlayer.isPrepared);
+            if (!node.videoPlayer.isPrepared)
+            {
+                node.videoPlayer.Prepare();
+                yield return new WaitUntil(() => node.videoPlayer.isPrepared);
+            }
+
             ShowFirstVideoFrameOnly(node.videoPlayer);
         }
 
@@ -219,7 +220,7 @@ public class PanoramaTourManager : MonoBehaviour
             return;
         }
 
-        sphereRenderer.material = targetNode.panoramaMaterial;
+        sphereRenderer.sharedMaterial = targetNode.panoramaMaterial;
 
         foreach (PanoramaNode node in nodes)
         {
