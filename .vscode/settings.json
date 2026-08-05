@@ -67,6 +67,6 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "360-Library-Tour.slnx",
+    "dotnet.defaultSolution": "DVA_Asg3.slnx",
     "dotnet.enableWorkspaceBasedDevelopment": false
 }
