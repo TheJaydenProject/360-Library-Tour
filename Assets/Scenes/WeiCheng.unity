@@ -7492,7 +7492,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7651f8a73cdb57d43905c18869d241ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BookRotate
-  rotationSpeed: 10
+  rotationSpeed: 20
 --- !u!1001 &1594535202
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9036,7 +9036,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 0, a: 0.07058824}
+  m_Color: {r: 1, g: 1, b: 0, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -9887,7 +9887,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7651f8a73cdb57d43905c18869d241ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BookRotate
-  rotationSpeed: 10
+  rotationSpeed: 20
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
