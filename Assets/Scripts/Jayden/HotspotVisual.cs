@@ -1,4 +1,5 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -13,12 +14,26 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
     [SerializeField] private float idlePulseMaxScale = 1.1f;
 
     [Header("Text Panel")]
-    [SerializeField] private CanvasGroup textPanel;
+    [SerializeField] private Canvas textPanel;
     [SerializeField] private float panelAnimationDuration = 0.33f;
 
+    [Header("Title & Voiceover")]
+    [SerializeField] private TMP_Text titleText;
+    [SerializeField] private TMP_Text bodyText;
+    [SerializeField] private AudioSource voiceoverSource;
+    [SerializeField] private AudioClip voiceoverClip;
+    [SerializeField] private float titleTypeDuration = 1f;
+    [SerializeField] private float bodyTypeSpeedMultiplier = 1.1f;
+
     private Vector3 _baseScale;
+    private Vector3 _panelOpenScale;
+    private CanvasGroup _panelCanvasGroup;
     private bool _isPanelOpen;
     private Coroutine _panelCoroutine;
+
+    private string _titleFullText;
+    private string _bodyFullText;
+    private Coroutine _sequenceCoroutine;
 
     private void Awake()
     {
@@ -26,10 +41,30 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
 
         if (textPanel != null)
         {
-            textPanel.alpha = 0f;
-            textPanel.interactable = false;
-            textPanel.blocksRaycasts = false;
+            _panelOpenScale = textPanel.transform.localScale;
+
+            _panelCanvasGroup = textPanel.GetComponent<CanvasGroup>();
+            if (_panelCanvasGroup == null)
+            {
+                _panelCanvasGroup = textPanel.gameObject.AddComponent<CanvasGroup>();
+            }
+
+            _panelCanvasGroup.alpha = 0f;
+            _panelCanvasGroup.interactable = false;
+            _panelCanvasGroup.blocksRaycasts = false;
             textPanel.transform.localScale = Vector3.zero;
+        }
+
+        if (titleText != null)
+        {
+            _titleFullText = titleText.text;
+            titleText.text = "";
+        }
+
+        if (bodyText != null)
+        {
+            _bodyFullText = bodyText.text;
+            bodyText.text = "";
         }
     }
 
@@ -55,20 +90,91 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
         }
 
         _panelCoroutine = StartCoroutine(AnimatePanel(_isPanelOpen));
+
+        if (_isPanelOpen)
+        {
+            ReplaySequence();
+        }
+        else
+        {
+            StopSequence();
+        }
+    }
+
+    // Wire this to the panel's replay button.
+    public void ReplaySequence()
+    {
+        StopSequence();
+        _sequenceCoroutine = StartCoroutine(PlayTitleThenBodySequence());
+    }
+
+    private void StopSequence()
+    {
+        if (_sequenceCoroutine != null)
+        {
+            StopCoroutine(_sequenceCoroutine);
+            _sequenceCoroutine = null;
+        }
+
+        if (voiceoverSource != null)
+        {
+            voiceoverSource.Stop();
+        }
+
+        if (titleText != null)
+        {
+            titleText.text = "";
+        }
+
+        if (bodyText != null)
+        {
+            bodyText.text = "";
+        }
+    }
+
+    private IEnumerator PlayTitleThenBodySequence()
+    {
+        yield return TypeText(titleText, _titleFullText, titleTypeDuration);
+
+        if (voiceoverSource != null && voiceoverClip != null)
+        {
+            voiceoverSource.clip = voiceoverClip;
+            voiceoverSource.Play();
+            yield return TypeText(bodyText, _bodyFullText, voiceoverClip.length / bodyTypeSpeedMultiplier);
+        }
+
+        _sequenceCoroutine = null;
+    }
+
+    private IEnumerator TypeText(TMP_Text label, string fullText, float duration)
+    {
+        if (label == null || string.IsNullOrEmpty(fullText))
+        {
+            yield break;
+        }
+
+        label.text = "";
+        float delayPerCharacter = duration / fullText.Length;
+
+        foreach (char character in fullText)
+        {
+            label.text += character;
+            yield return new WaitForSeconds(delayPerCharacter);
+        }
     }
 
     private IEnumerator AnimatePanel(bool open)
     {
         Transform panelTransform = textPanel.transform;
-        float startAlpha = textPanel.alpha;
+        float startAlpha = _panelCanvasGroup.alpha;
         Vector3 startScale = panelTransform.localScale;
         float targetAlpha = open ? 1f : 0f;
-        Vector3 targetScale = open ? Vector3.one : Vector3.zero;
+        Vector3 targetScale = open ? _panelOpenScale : Vector3.zero;
 
         if (open)
         {
-            textPanel.interactable = true;
-            textPanel.blocksRaycasts = true;
+            _panelCanvasGroup.interactable = true;
+            _panelCanvasGroup.blocksRaycasts = true;
         }
 
         float elapsed = 0f;
@@ -76,18 +182,18 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / panelAnimationDuration);
-            textPanel.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
+            _panelCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
             panelTransform.localScale = Vector3.Lerp(startScale, targetScale, t);
             yield return null;
         }
 
-        textPanel.alpha = targetAlpha;
+        _panelCanvasGroup.alpha = targetAlpha;
         panelTransform.localScale = targetScale;
 
         if (!open)
         {
-            textPanel.interactable = false;
-            textPanel.blocksRaycasts = false;
+            _panelCanvasGroup.interactable = false;
+            _panelCanvasGroup.blocksRaycasts = false;
         }
 
         _panelCoroutine = null;
