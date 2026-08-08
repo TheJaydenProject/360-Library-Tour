@@ -9,6 +9,7 @@ public class RiddleOptions : MonoBehaviour
     {
         StopAllCoroutines();
         wrongAnswerImage.SetActive(false);
+        rightAnswerImage.SetActive(false);
         rightAnswerImage.SetActive(true);
         StartCoroutine(WaitAndDeactivate(rightAnswerImage, 2f));
     }
@@ -17,6 +18,7 @@ public class RiddleOptions : MonoBehaviour
     {
         StopAllCoroutines();
         rightAnswerImage.SetActive(false);
+        wrongAnswerImage.SetActive(false);
         wrongAnswerImage.SetActive(true);
         StartCoroutine(WaitAndDeactivate(wrongAnswerImage, 2f));
     }
