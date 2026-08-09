@@ -22,7 +22,7 @@ public class RiddleOptions : MonoBehaviour
 
         if (UIManager.Instance != null)
         {
-            UIManager.Instance.ReportCornerSolved();
+            UIManager.Instance.ReportCornerSolved(UIManager.CornerType.Comic);
         }
     }
 

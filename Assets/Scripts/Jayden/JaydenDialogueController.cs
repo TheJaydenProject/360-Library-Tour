@@ -160,7 +160,7 @@ public class JaydenDialogueController : MonoBehaviour
 
             if (UIManager.Instance != null)
             {
-                UIManager.Instance.ReportCornerSolved();
+                UIManager.Instance.ReportCornerSolved(UIManager.CornerType.Newspaper);
             }
 
             StartCoroutine(AutoCloseAfterCorrectAnswer());

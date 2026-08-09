@@ -6,6 +6,16 @@ using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
+    public enum CornerType
+    {
+        Newspaper,
+        Comic,
+        Dvd
+    }
+
+    private const float MedalLockedAlpha = 75f / 255f;
+    private const float MedalUnlockedAlpha = 1f;
+
     public static UIManager Instance { get; private set; }
 
     [SerializeField] private Image startImage;
@@ -21,6 +31,11 @@ public class UIManager : MonoBehaviour
 
     [Header("UI Group (hidden while a hotspot panel is open)")]
     [SerializeField] private GameObject uiGroup;
+
+    [Header("Medal HUD Images")]
+    [SerializeField] private Image newspaperMedalImage;
+    [SerializeField] private Image comicMedalImage;
+    [SerializeField] private Image dvdMedalImage;
 
     [Header("Corner Solved Messages")]
     [TextArea(2, 4)]
@@ -42,6 +57,10 @@ public class UIManager : MonoBehaviour
         HideImmediately(startImage);
         HideImmediately(mapImage);
         HideImmediately(objectiveImage);
+
+        SetImageAlpha(newspaperMedalImage, MedalLockedAlpha);
+        SetImageAlpha(comicMedalImage, MedalLockedAlpha);
+        SetImageAlpha(dvdMedalImage, MedalLockedAlpha);
     }
 
     public void SetObjectiveText(string newText)
@@ -53,9 +72,19 @@ public class UIManager : MonoBehaviour
     }
 
     // Call this from a corner's riddle-solved success handler.
-    public void ReportCornerSolved()
+    public void ReportCornerSolved(CornerType corner)
     {
         _cornersSolvedCount++;
+
+        Image medalImage = corner switch
+        {
+            CornerType.Newspaper => newspaperMedalImage,
+            CornerType.Comic => comicMedalImage,
+            CornerType.Dvd => dvdMedalImage,
+            _ => null
+        };
+
+        SetImageAlpha(medalImage, MedalUnlockedAlpha);
 
         string message = _cornersSolvedCount switch
         {
@@ -65,6 +94,18 @@ public class UIManager : MonoBehaviour
         };
 
         SetObjectiveText(message);
+    }
+
+    private void SetImageAlpha(Image image, float alpha)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        Color color = image.color;
+        color.a = alpha;
+        image.color = color;
     }
 
     private void Start()
