@@ -41,6 +41,24 @@ public class JaydenDialogueController : MonoBehaviour
     [SerializeField] private bool answer4IsCorrect;
     [SerializeField] private float fadeDuration = 0.3f;
 
+    [Header("Answer Feedback")]
+    [SerializeField] private Image correctAnswerImage;
+    [SerializeField] private Image wrongAnswerImage;
+    [SerializeField] private float answerFeedbackScaleDuration = 0.25f;
+    [SerializeField] private float answerFeedbackHoldDuration = 1f;
+    [SerializeField] private AudioSource correctAnswerAudioSource;
+    [SerializeField] private AudioSource wrongAnswerAudioSource;
+    [SerializeField] private AudioClip correctAnswerSfxClip;
+    [SerializeField] private AudioClip wrongAnswerSfxClip;
+
+    [Header("Auto Close On Correct Answer")]
+    [SerializeField] private HotspotVisual npcHotspotVisual;
+    [SerializeField] private float autoCloseDelayAfterCorrect = 1f;
+
+    [Header("Screen Reveal On First Question")]
+    [SerializeField] private GameObject screenObject;
+    [SerializeField] private float screenRevealDelay = 0.5f;
+
     [Header("Riddle Result Events")]
     [SerializeField] private UnityEvent onCorrectAnswer;
     [SerializeField] private UnityEvent onWrongAnswer;
@@ -49,6 +67,8 @@ public class JaydenDialogueController : MonoBehaviour
     private bool _q2Asked;
     private bool _q3Asked;
     private bool _isAnswerMode;
+    private bool _screenRevealed;
+    private Coroutine _answerFeedbackCoroutine;
 
     private void Awake()
     {
@@ -59,10 +79,27 @@ public class JaydenDialogueController : MonoBehaviour
 
         riddleVideoPlayer.loopPointReached += OnRiddleVideoFinished;
 
+        if (screenObject != null)
+        {
+            screenObject.SetActive(false);
+        }
+
         SetLabelAlpha(answer1Label, 0f);
         SetLabelAlpha(answer2Label, 0f);
         SetLabelAlpha(answer3Label, 0f);
         SetLabelAlpha(answer4Label, 0f);
+
+        if (correctAnswerImage != null)
+        {
+            correctAnswerImage.transform.localScale = Vector3.zero;
+            correctAnswerImage.gameObject.SetActive(false);
+        }
+
+        if (wrongAnswerImage != null)
+        {
+            wrongAnswerImage.transform.localScale = Vector3.zero;
+            wrongAnswerImage.gameObject.SetActive(false);
+        }
 
         UpdateRiddleUnlockState();
     }
@@ -96,6 +133,12 @@ public class JaydenDialogueController : MonoBehaviour
                 PlayAnswer(riddleVideoPlayer, 4);
                 break;
         }
+
+        if (!_screenRevealed)
+        {
+            _screenRevealed = true;
+            StartCoroutine(RevealScreenAfterDelay());
+        }
     }
 
     private void CheckAnswer(int index)
@@ -111,12 +154,101 @@ public class JaydenDialogueController : MonoBehaviour
 
         if (isCorrect)
         {
+            PlayAnswerFeedback(correctAnswerImage);
+            PlayAnswerSfx(correctAnswerAudioSource, correctAnswerSfxClip);
             onCorrectAnswer.Invoke();
+            StartCoroutine(AutoCloseAfterCorrectAnswer());
         }
         else
         {
+            PlayAnswerFeedback(wrongAnswerImage);
+            PlayAnswerSfx(wrongAnswerAudioSource, wrongAnswerSfxClip);
             onWrongAnswer.Invoke();
         }
+    }
+
+    private void PlayAnswerSfx(AudioSource source, AudioClip clip)
+    {
+        if (source == null || clip == null)
+        {
+            return;
+        }
+
+        source.PlayOneShot(clip);
+    }
+
+    private IEnumerator AutoCloseAfterCorrectAnswer()
+    {
+        float feedbackDuration = (answerFeedbackScaleDuration * 2f) + answerFeedbackHoldDuration;
+        yield return new WaitForSeconds(feedbackDuration + autoCloseDelayAfterCorrect);
+
+        if (npcHotspotVisual != null)
+        {
+            npcHotspotVisual.ClosePanel();
+        }
+    }
+
+    private IEnumerator RevealScreenAfterDelay()
+    {
+        yield return new WaitForSeconds(screenRevealDelay);
+
+        if (screenObject != null)
+        {
+            screenObject.SetActive(true);
+        }
+    }
+
+    private void PlayAnswerFeedback(Image feedbackImage)
+    {
+        if (feedbackImage == null)
+        {
+            return;
+        }
+
+        if (_answerFeedbackCoroutine != null)
+        {
+            StopCoroutine(_answerFeedbackCoroutine);
+        }
+
+        if (correctAnswerImage != null)
+        {
+            correctAnswerImage.transform.localScale = Vector3.zero;
+            correctAnswerImage.gameObject.SetActive(false);
+        }
+
+        if (wrongAnswerImage != null)
+        {
+            wrongAnswerImage.transform.localScale = Vector3.zero;
+            wrongAnswerImage.gameObject.SetActive(false);
+        }
+
+        _answerFeedbackCoroutine = StartCoroutine(AnimateAnswerFeedback(feedbackImage));
+    }
+
+    private IEnumerator AnimateAnswerFeedback(Image feedbackImage)
+    {
+        Transform feedbackTransform = feedbackImage.transform;
+        feedbackImage.gameObject.SetActive(true);
+
+        yield return ScaleOverTime(feedbackTransform, Vector3.zero, Vector3.one, answerFeedbackScaleDuration);
+        yield return new WaitForSeconds(answerFeedbackHoldDuration);
+        yield return ScaleOverTime(feedbackTransform, Vector3.one, Vector3.zero, answerFeedbackScaleDuration);
+
+        feedbackImage.gameObject.SetActive(false);
+        _answerFeedbackCoroutine = null;
+    }
+
+    private IEnumerator ScaleOverTime(Transform target, Vector3 from, Vector3 to, float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            target.localScale = Vector3.Lerp(from, to, Mathf.Clamp01(elapsed / duration));
+            yield return null;
+        }
+
+        target.localScale = to;
     }
 
     private void OnRiddleVideoFinished(VideoPlayer source)

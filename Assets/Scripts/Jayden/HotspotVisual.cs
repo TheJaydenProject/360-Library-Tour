@@ -28,6 +28,8 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
     [Header("Click Sound (Optional)")]
     [SerializeField] private AudioClip clickSfxClip;
     [SerializeField] private float clickSfxDelay = 0.1f;
+    [SerializeField] private AudioClip secondClickSfxClip;
+    [SerializeField] private float secondClickSfxDelay = 0.1f;
 
     private Vector3 _baseScale;
     private Vector3 _panelOpenScale;
@@ -39,6 +41,10 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
     private string _bodyFullText;
     private Coroutine _sequenceCoroutine;
     private Coroutine _clickSfxCoroutine;
+    private Coroutine _introAudioCoroutine;
+
+    // Fires once the intro voiceover clip has actually finished playing (not just body-typing pace).
+    public event System.Action OnIntroAudioFinished;
 
     private void Awake()
     {
@@ -87,7 +93,24 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
             return;
         }
 
-        _isPanelOpen = !_isPanelOpen;
+        SetPanelOpen(!_isPanelOpen, playClickSfx: true);
+    }
+
+    // Lets other scripts (e.g. JaydenDialogueController) close the panel programmatically,
+    // as if the hotspot icon itself was clicked again.
+    public void ClosePanel()
+    {
+        if (textPanel == null || !_isPanelOpen)
+        {
+            return;
+        }
+
+        SetPanelOpen(false, playClickSfx: false);
+    }
+
+    private void SetPanelOpen(bool open, bool playClickSfx)
+    {
+        _isPanelOpen = open;
 
         if (_panelCoroutine != null)
         {
@@ -99,7 +122,11 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
         if (_isPanelOpen)
         {
             ReplaySequence();
-            PlayClickSfx();
+
+            if (playClickSfx)
+            {
+                PlayClickSfx();
+            }
         }
         else
         {
@@ -126,6 +153,13 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
     {
         yield return new WaitForSeconds(clickSfxDelay);
         voiceoverSource.PlayOneShot(clickSfxClip);
+
+        if (secondClickSfxClip != null)
+        {
+            yield return new WaitForSeconds(clickSfxClip.length + secondClickSfxDelay);
+            voiceoverSource.PlayOneShot(secondClickSfxClip);
+        }
+
         _clickSfxCoroutine = null;
     }
 
@@ -148,6 +182,12 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
         {
             StopCoroutine(_clickSfxCoroutine);
             _clickSfxCoroutine = null;
+        }
+
+        if (_introAudioCoroutine != null)
+        {
+            StopCoroutine(_introAudioCoroutine);
+            _introAudioCoroutine = null;
         }
 
         if (voiceoverSource != null)
@@ -174,10 +214,18 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
         {
             voiceoverSource.clip = voiceoverClip;
             voiceoverSource.Play();
+            _introAudioCoroutine = StartCoroutine(InvokeWhenIntroAudioFinishes(voiceoverClip.length));
             yield return TypeText(bodyText, _bodyFullText, voiceoverClip.length / bodyTypeSpeedMultiplier);
         }
 
         _sequenceCoroutine = null;
+    }
+
+    private IEnumerator InvokeWhenIntroAudioFinishes(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        _introAudioCoroutine = null;
+        OnIntroAudioFinished?.Invoke();
     }
 
     private IEnumerator TypeText(TMP_Text label, string fullText, float duration)
