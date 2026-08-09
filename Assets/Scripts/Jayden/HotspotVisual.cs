@@ -25,6 +25,10 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
     [SerializeField] private float titleTypeDuration = 1f;
     [SerializeField] private float bodyTypeSpeedMultiplier = 1.1f;
 
+    [Header("Click Sound (Optional)")]
+    [SerializeField] private AudioClip clickSfxClip;
+    [SerializeField] private float clickSfxDelay = 0.1f;
+
     private Vector3 _baseScale;
     private Vector3 _panelOpenScale;
     private CanvasGroup _panelCanvasGroup;
@@ -34,6 +38,7 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
     private string _titleFullText;
     private string _bodyFullText;
     private Coroutine _sequenceCoroutine;
+    private Coroutine _clickSfxCoroutine;
 
     private void Awake()
     {
@@ -94,11 +99,34 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
         if (_isPanelOpen)
         {
             ReplaySequence();
+            PlayClickSfx();
         }
         else
         {
             StopSequence();
         }
+    }
+
+    private void PlayClickSfx()
+    {
+        if (clickSfxClip == null || voiceoverSource == null)
+        {
+            return;
+        }
+
+        if (_clickSfxCoroutine != null)
+        {
+            StopCoroutine(_clickSfxCoroutine);
+        }
+
+        _clickSfxCoroutine = StartCoroutine(PlayClickSfxDelayed());
+    }
+
+    private IEnumerator PlayClickSfxDelayed()
+    {
+        yield return new WaitForSeconds(clickSfxDelay);
+        voiceoverSource.PlayOneShot(clickSfxClip);
+        _clickSfxCoroutine = null;
     }
 
     // Wire this to the panel's replay button.
@@ -114,6 +142,12 @@ public class HotspotVisual : MonoBehaviour, IPointerClickHandler
         {
             StopCoroutine(_sequenceCoroutine);
             _sequenceCoroutine = null;
+        }
+
+        if (_clickSfxCoroutine != null)
+        {
+            StopCoroutine(_clickSfxCoroutine);
+            _clickSfxCoroutine = null;
         }
 
         if (voiceoverSource != null)
