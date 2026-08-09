@@ -108,6 +108,9 @@ public class HotspotInteraction : MonoBehaviour
             yield return new WaitForSeconds(typingDelay);
         }
 
+        // Small pause after typing finishes
+        yield return new WaitForSeconds(1f);
+
         // Keep the completed subtitle visible until the audio finishes.
         if (audioSource != null && audioSource.isPlaying)
         {
