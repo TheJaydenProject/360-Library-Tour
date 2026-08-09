@@ -157,6 +157,12 @@ public class JaydenDialogueController : MonoBehaviour
             PlayAnswerFeedback(correctAnswerImage);
             PlayAnswerSfx(correctAnswerAudioSource, correctAnswerSfxClip);
             onCorrectAnswer.Invoke();
+
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.ReportCornerSolved();
+            }
+
             StartCoroutine(AutoCloseAfterCorrectAnswer());
         }
         else

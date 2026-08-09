@@ -61,6 +61,11 @@ public class HotspotInteraction : MonoBehaviour
             subtitleText.text = "";
             subtitleText.gameObject.SetActive(false);
         }
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.HideUIGroup();
+        }
     }
 
     // Connect this to the exit button's On Click().
@@ -74,6 +79,11 @@ public class HotspotInteraction : MonoBehaviour
         }
 
         ShowPrimaryCanvas();
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowUIGroup();
+        }
     }
 
     // Connect this to the hint button's On Click().

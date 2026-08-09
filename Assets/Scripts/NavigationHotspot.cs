@@ -15,6 +15,10 @@ public class NavigationHotspot : MonoBehaviour, IPointerClickHandler
     [Tooltip("Which of the target node's arrival rotations to use (only matters if that node has 'Use Separate Out Facing' enabled)")]
     [SerializeField] private ArrivalDirection arrivalDirection = ArrivalDirection.In;
 
+    [Tooltip("If set, updates the HUD objective text when this hotspot is clicked. Leave blank for hotspots that shouldn't change it (most navigation hotspots).")]
+    [TextArea(2, 4)]
+    [SerializeField] private string objectiveTextOnArrival;
+
     public string TargetNodeId => targetNodeId;
     public ArrivalDirection ArrivalDirection => arrivalDirection;
 
@@ -27,5 +31,10 @@ public class NavigationHotspot : MonoBehaviour, IPointerClickHandler
         }
 
         tourManager.NavigateToNode(targetNodeId, arrivalDirection);
+
+        if (!string.IsNullOrEmpty(objectiveTextOnArrival) && UIManager.Instance != null)
+        {
+            UIManager.Instance.SetObjectiveText(objectiveTextOnArrival);
+        }
     }
 }

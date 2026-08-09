@@ -5,6 +5,12 @@ public class RiddleOptions : MonoBehaviour
 {
     [SerializeField] private GameObject rightAnswerImage;
     [SerializeField] private GameObject wrongAnswerImage;
+
+    [SerializeField] private AudioSource correctAnswerAudioSource;
+    [SerializeField] private AudioClip correctAnswerSfxClip;
+    [SerializeField] private AudioSource wrongAnswerAudioSource;
+    [SerializeField] private AudioClip wrongAnswerSfxClip;
+
     public void RightAnswer()
     {
         StopAllCoroutines();
@@ -12,6 +18,12 @@ public class RiddleOptions : MonoBehaviour
         rightAnswerImage.SetActive(false);
         rightAnswerImage.SetActive(true);
         StartCoroutine(WaitAndDeactivate(rightAnswerImage, 2f));
+        PlaySfx(correctAnswerAudioSource, correctAnswerSfxClip);
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ReportCornerSolved();
+        }
     }
 
     public void WrongAnswer()
@@ -21,6 +33,17 @@ public class RiddleOptions : MonoBehaviour
         wrongAnswerImage.SetActive(false);
         wrongAnswerImage.SetActive(true);
         StartCoroutine(WaitAndDeactivate(wrongAnswerImage, 2f));
+        PlaySfx(wrongAnswerAudioSource, wrongAnswerSfxClip);
+    }
+
+    private void PlaySfx(AudioSource source, AudioClip clip)
+    {
+        if (source == null || clip == null)
+        {
+            return;
+        }
+
+        source.PlayOneShot(clip);
     }
 
     private IEnumerator WaitAndDeactivate(GameObject image, float waitTime)

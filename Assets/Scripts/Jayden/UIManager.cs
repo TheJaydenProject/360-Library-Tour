@@ -1,13 +1,17 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
+    public static UIManager Instance { get; private set; }
+
     [SerializeField] private Image startImage;
     [SerializeField] private Image mapImage;
     [SerializeField] private Image objectiveImage;
+    [SerializeField] private TMP_Text objectiveText;
     [SerializeField] private float startDelay = 1f;
     [SerializeField] private float objectiveImageDelay = 0.2f;
     [SerializeField] private float growShrinkDuration = 0.3f;
@@ -15,14 +19,52 @@ public class UIManager : MonoBehaviour
     [Header("Background Music")]
     [SerializeField] private AudioSource bgmAudioSource;
 
+    [Header("UI Group (hidden while a hotspot panel is open)")]
+    [SerializeField] private GameObject uiGroup;
+
+    [Header("Corner Solved Messages")]
+    [TextArea(2, 4)]
+    [SerializeField] private string oneCornerSolvedText = "1 of 3 corners solved. Find the next hidden corner.";
+    [TextArea(2, 4)]
+    [SerializeField] private string twoCornersSolvedText = "2 of 3 corners solved. One left to go.";
+    [TextArea(2, 4)]
+    [SerializeField] private string allCornersSolvedText = "All 3 corners solved. Tour complete!";
+
+    private static int _cornersSolvedCount;
+
     private bool _isStartImageShown;
     private bool _isMapImageShown;
 
     private void Awake()
     {
+        Instance = this;
+
         HideImmediately(startImage);
         HideImmediately(mapImage);
         HideImmediately(objectiveImage);
+    }
+
+    public void SetObjectiveText(string newText)
+    {
+        if (objectiveText != null)
+        {
+            objectiveText.text = newText;
+        }
+    }
+
+    // Call this from a corner's riddle-solved success handler.
+    public void ReportCornerSolved()
+    {
+        _cornersSolvedCount++;
+
+        string message = _cornersSolvedCount switch
+        {
+            1 => oneCornerSolvedText,
+            2 => twoCornersSolvedText,
+            _ => allCornersSolvedText
+        };
+
+        SetObjectiveText(message);
     }
 
     private void Start()
@@ -32,6 +74,24 @@ public class UIManager : MonoBehaviour
         if (bgmAudioSource != null)
         {
             bgmAudioSource.Play();
+        }
+    }
+
+    // Wire this to the hotspot's open button.
+    public void HideUIGroup()
+    {
+        if (uiGroup != null)
+        {
+            uiGroup.SetActive(false);
+        }
+    }
+
+    // Wire this to the hotspot's close/exit button.
+    public void ShowUIGroup()
+    {
+        if (uiGroup != null)
+        {
+            uiGroup.SetActive(true);
         }
     }
 
