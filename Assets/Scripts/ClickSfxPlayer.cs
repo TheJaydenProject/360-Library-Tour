@@ -26,8 +26,8 @@ public class ClickSfxPlayer : MonoBehaviour
         audioSource.clip = clickSfxClip;
         audioSource.PlayDelayed(clickSfxDelay);
 
-        bool isEvenClick = _clickCount % 2 == 0;
-        if (isEvenClick && secondClickSfxClip != null && secondAudioSource != null)
+        bool isOddClick = _clickCount % 2 != 0;
+        if (isOddClick && secondClickSfxClip != null && secondAudioSource != null)
         {
             secondAudioSource.clip = secondClickSfxClip;
             secondAudioSource.PlayDelayed(clickSfxDelay + clickSfxClip.length + secondClickSfxDelay);
